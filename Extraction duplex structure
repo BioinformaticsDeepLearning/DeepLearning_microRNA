@@ -1,0 +1,65 @@
+#!/usr/bin/perl -w
+
+if (@ARGV==0){
+  print STDERR "usage: features_mirna_positive.pl  <input file>\n";
+  exit;
+}
+
+open (ST,">$ARGV[0].out");
+open (INFO, $ARGV[0]);   #The output of find_transcripts
+
+my $bait1=">";
+my $bait2="Forward";
+my $bait3="Performing Scan:";
+my $header='';  
+my $gene_iinfo=0;
+my $line1 ='';	my $line2 ='';	my $line3 ='';	
+my $line4 ='';	my $line5 ='';	my $line6 ='';  my $line7 ='';  my $line8='';  my $line9='';
+my $line10 =''; my $line11 ='';
+my $flag=0; my $count =0; 
+while ($line1 = <INFO>){	
+	if(($line1 =~m/$bait3/) && ($count ==0)){
+		@sg_1 = split (/ /,$line1);
+		$header_n = $sg_1[2];
+		$gene_info_n = $sg_1[4];
+		$header_n = join "",">",$header_n,"\t",$gene_info_n;
+		$line3 = <INFO>;  $line4 = <INFO>;   
+		$line5 = <INFO>;  $line6 = <INFO>;  
+		$line7 = <INFO>;  $line8 = <INFO>;  
+		$line9 = <INFO>;  $line10 =<INFO>;  $line11 = <INFO>;
+		@energy = split(/ /,$line11);
+		$line5 =~ s/\s+$//;
+		$line5 = join "",$line5,"\t",$energy[3].$energy[5];
+		print ST $header_n;
+		print ST "$line5\n\n";  print ST $line9;  
+		print ST $line8;  print ST "$line7\n";
+		$count++;
+	}
+	if ($line1 =~m/$bait1/){
+		@test=split (/\t/,$line1);
+		$header = join "",$test[0],"\t",$test[1];		
+		while ($line2=<INFO>){	
+			if ($line2 =~/$bait2/){				
+				if ($flag==0){ 
+				print ST "$header\n"; 
+				}
+				if ($flag>=1){
+				print ST "\n$header\n";				
+				}
+				$flag++;
+#				print ST $line2;				
+				$line3=<INFO>;	$line4=<INFO>;	
+				$line5=<INFO>;	$line6=<INFO>;
+				$line7 = <INFO>;  $line8 = <INFO>;
+		                @energy = split(/ /,$line8);
+		                $line2 =~ s/\s+$//;
+		                $line2 = join "",$line2,"\t",$energy[3].$energy[5];  #add energy
+				print ST "$line2\n";
+				print ST $line3;  print ST $line6;	
+				print ST $line5;  print ST "$line4";
+				last;						     #send it to the while loop	
+			}
+		
+		}
+	}
+}
