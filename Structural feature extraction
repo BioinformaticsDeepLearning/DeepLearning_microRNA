@@ -1,0 +1,364 @@
+#!/usr/bin/perl
+use Term::ANSIColor;
+
+if (@ARGV==0) {
+  print STDERR "usage: features_mirna_positive.pl  <output of miranada>\n";
+  exit;
+}
+
+open (ST,">$ARGV[0].statistics");
+open (STB,">$ARGV[0].stb");
+open (INFO, $ARGV[0]);   #The output of find_transcripts 
+#open (MATURE, $ARGV[1]); #The mature microRNA file
+#open (FOUT ,$ARGV[2]  );
+print ST "FHR: d5  bpmirna seed-nblgus seed-nloops seed-nasymloops","\n" ;
+print ST "FHR: bp5' 5'-nblgus  5'-nloops  5'-nasymloops","\n" ;
+print ST "FHR:seed part(8 features): #bulges with length 1,2,..,7 and >7\n" ;
+print ST "FHR:seed part:(8 features) #symtric loops with length 1,2,..,7 and >7\n" ;
+print ST "FHR:seed part: (8 features)#asymetric loops with length 1,2,..,7 and >7\n" ;
+print ST "FHR:out-seed part: (8 features)#bulgesc loops with length 1,2,..,7 and >7\n" ;
+print ST "FHR:out-seed part: (8 features)#symetric loops with length 1,2,..,7 and >7\n" ;
+print ST "FHR:out-seed part: (8 features)#asymetric loops with length 1,2,..,7 and >7" ;
+
+
+#@nblgsmirna      =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) ;
+#@nblgsoutmirna   =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+#@nloopsmirna     =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+#@nsymloopsmirna  =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+#@nasymloopsmirna =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+#@nloopsoutmirna     =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+#@nsymloopsoutmirna  =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+#@nasymloopsoutmirna =(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+
+$flagformirna = 0 ;
+#Read The mature microRNA to an array
+#@mature = <MATURE>;
+@location=();
+$counter = 0 ;
+$sum5d=0;
+$sum3d=0;
+$summirna =0 ;
+$summirnab=0;
+$line ="blablabla";
+$indexcounter=0;
+#while ( $line !~/HDR/ ) 
+  #   {$line=<INFO>;} #Reach the first HDR
+     
+while ( !eof(INFO)  ) 
+{ 
+  while ( $line !~/>/ & !eof(INFO)){
+	$line=<INFO>;} #Reach the first ">"
+	print $line; 
+	 if ($line =~/>/){
+	      if ( $line =~ />(.*)/ ) { $hdrname =$1;}
+	 }	
+      $title = $line;
+      $gene_info = <INFO>;	  
+      @ref=split(/ /,$gene_info);	
+      #$hdrname = join "",$hdrname,"\t",$ref[10].$ref[11].$ref[12];	
+      $hdrname = join "",$hdrname,"\t",$ref[10].$ref[11].$ref[12];	
+      $empty=<INFO>;		
+      $stem1 = <INFO>;
+      $dashes= <INFO>;
+      $stem2 = <INFO>;
+      if ( $stem1     =~/(Ref:)\s+(5'\s*[NATCGUatcgu-]*[NATCGUatcgu-]\s*3')/ )   
+                 {   $tmp_stm1 = $2;
+                     if ($tmp_stm1 =~/5'\s*([NATCGUatcgu-]*[NATCGUatcgu-])\s*3'/ )
+                       {$stm1    = $1; $stem_l=length($stm1) }
+                  }
+      if ( $stem2     =~/(Query:)\s+(3'\s*[NATCGUatcgu-]*[NATCGUatcgu-]\s*5')/ )  
+                 {    $tmp_stm2 = $2;
+                     if ($tmp_stm2 =~/3'\s*([NATCGUatcgu-]*[NATCGUatcgu-])\s*5'/ )
+                             {$stm2    = $1;}
+                   }
+       if ($stem1 =~m/(Ref:\s+)/g)
+           { $first_t=pos($stem1);}
+       $new_dashes = substr($dashes,$first_t); 
+      if ( $new_dashes    =~/\s+(\|+[\|\s]*\|+)\s+/              )    
+                 { $dash = $1;}
+     $new_dashes=~s/\n//g;
+    print "\n$tmp_stm1\n$new_dashes\n$tmp_stm2\n";
+    my $count = 0 ; 
+    my $i = 1 ;
+    my $loc=$stem_l;
+    while ($count < 8)
+       { $s = substr($stm1,$stem_l-$i,1);
+        if ($s =~/[ATCGUatcgu]/ ) 
+          { ++$count;}
+        ++$i;
+        --$loc; 
+     }
+ my $seed = substr($stm1,$loc) ;
+    $seed=~s/-//g;
+    $seed=~tr/[Tt]/[Uu]/;
+    $seed=~tr/[ATCGUN]/[atcgun]/;
+      ++$indexcounter;
+     #$hdrname =~tr/\n//; 
+      print ST "\n>HDR:$hdrname";
+      print ST "\n## $seed";
+      print ST "\n## Index:$indexcounter\n";
+      $new_dashes=~s/\./ /g;
+      $new_dashes=~s/\:/ /g;
+      #extractFeatures($stem1,$stem2,$dash);
+      extractFeatures($tmp_stm1,$tmp_stm2,$new_dashes);
+     $hdrname = "blabla";
+     $line = <INFO>;
+  }#End of while ( !eof(INFO) );
+
+close INFO;
+#     print ST "\n>HDR:";
+
+print "Total sum of stem-loop microRNA is ",$summirna,"\n";
+print "Total sum of microRNA's is ",$summirnab,"\n";
+                                                                                                                             
+print "Total sum of stem-loop 5' is ",$sum5d,"\n";
+print "Total sum of stem-loop 3' is ",$sum3d,"\n";
+
+print STB "nt \n nblgs-mirna, nblgs-outmirna, \n nloops-mirna, nloops-outmirna,\n nsym-loops-mirna, nsym-loops-outmirna, \n nasym-loops-mirna, nasym-loops-outmirna\n\n";
+
+print STB "Total sum of microRNA's is ",$summirnab,"\n";
+print STB  "Total sum of stem-loop microRNA is ",$summirna,"\n";
+print STB "Total sum of stem-loops 5' is ",$sum5d,"\n";
+print STB "Total sum of stem-loops 3' is ",$sum3d,"\n";
+print STB "Total sum of stem-loops out-mirna(5'+3') is ", $sum5d+$sum3d,"\n\n";
+
+for ($k=1; $k<=15; $k++)
+  {    $result = sprintf("%4d %4d %4d %4d %4d %4d %4d %4d %4d \n",$k,$nblgsmirna[$k],$nblgsoutmirna[$k],$nloopsmirna[$k],$nloopsoutmirna[$k],$nsymloopsmirna[$k],$nsymloopsoutmirna[$k],$nasymloopsmirna[$k],$nasymloopsoutmirna[$k] );
+       print STB $result;    
+  }
+close STB;
+print STDOUT "finishd.";
+
+###########################################################################################################################
+sub extractFeatures{
+                   my ($stem1)= shift (@_);   
+                   my ($stem2)= shift (@_);
+                   my ($dashes) = shift (@_); #We refer to dashes directly
+my $stem_l = 0;
+      if ( $stem1     =~/(5'\s*)([NATCGUatcgu-]*[NATCGUatcgu-])(\s*3')/ )   
+                 { $stm1    = $2; $stem_l = length($stm1); }
+      if ( $stem2     =~/(3'\s*)([NATCGUatcgu-]*[NATCGUatcgu-])(\s*5')/ )  
+                 { $stm2    = $2; $prime3 = $1;$prime5=$3;}
+      #if ( $dashes    =~/\s+(\|+[\|\s]*\|+)\s+/              )    
+                 #{ #$dash = $1;
+                  my $t = $dashes;
+                  $dash = substr($t,3,$stem_l);   
+                  #} #Updatet May 23 2006 Malik
+my $count = 0 ; 
+my $i = 1 ;
+my $loc=$stem_l;
+while ($count < 8)
+ { $s = substr($stm1,$stem_l-$i,1);
+   if ($s =~/[ATCGUatcgu]/ ) 
+     { ++$count;}
+   ++$i;
+   --$loc; 
+ }
+
+ $location[0] = $loc ; 
+ $location[1] = $stem_l-1;     
+    #Initioliza the blugs,loops array (changed from 15 to 100)
+     for ($inb=1;$inb<=100;++$inb)
+        { $nblgsmirna[$inb]=0;
+          $nsymloopsmirna[$inb]=0;
+          $nasymloopsmirna[$inb]=0;
+          $nblgsoutmirna[$inb]=0;
+          $nsymloopsoutmirna[$inb]=0;
+          $nasymloopsoutmirna[$inb]=0;
+         }
+      #The mature microRNA found at the direction 5' to 3'
+      if ($location[0] != -1 )
+         { 
+          if ($hdrflag ==1 ){ print STDOUT  $hdrname;}
+
+           print STDOUT  $title  ;
+           $prevmirna = substr ($stem1,0,$location[0]+3);
+           $cmirna = substr ($stem1,$location[0]+3,$location[1]-$location[0]+1);
+           $aftermirna = substr($stem1,3+$location[1]+1 );
+           print STDOUT $prevmirna; print STDOUT color("blue"),$cmirna,color("reset"); print STDOUT $aftermirna;
+           print STDOUT $dashes;
+           print STDOUT $stem2;
+
+           #print distance from 5' direction 
+            $st5arm = substr($stm1,0,$location[0]);  $st3arm = substr($stm1,$location[1]+1);
+            $d1 = ($st5arm=~tr/ACGTUNacgtun//);  $d2 = ($st3arm =~tr/ACGTUNacgtun//);
+            $result = sprintf ("%4d ",$d1);
+            print ST $result; 
+            #Deal with seed microRNA
+            $n = $location[1] - $location[0] +1;
+            $pstem1 = substr($stm1,$location[0],$n);
+            $pdash = substr($dash,$location[0],$n);
+            $pstem2 = substr($stm2,$location[0],$n);
+            $flagformirna = 1 ;
+            findBulges($pstem1,$pdash,$pstem2);
+            $pstem1 =~ s/\-//g; $pstem2 =~s/\-//g;
+            $summirna = $summirna + length($pstem1)+ length($pstem2);
+            $summirnab = $summirnab + length($pstem1); 
+            print "\n", length($pstem1)+length($pstem2)," ",length($pstem1)," ";
+ 
+            #Deal with 5' to seed microRNA
+            $n = $location[1] - $location[0] +1;
+            $pstem1 = substr($stm1,0,$location[0]); 
+            $pdash = substr($dash,0,$location[0]);
+            $pstem2 = substr($stm2,0,$location[0]);
+            $flagformirna=0;
+            findBulges($pstem1,$pdash,$pstem2);
+            $pstem1 =~ s/\-//g; $pstem2 =~s/\-//g;
+            $sum5d = $sum5d + length($pstem1)+ length($pstem2);
+            print length($pstem1)+length($pstem2)," ";
+         }
+      #The mature microRNA found at the direction 3' to 5'
+#print to the features file the results of bulges loops length
+
+ printOutBulgsLoopsLength(@nblgsmirna);
+ printOutBulgsLoopsLength(@nsymloopsmirna);
+ printOutBulgsLoopsLength(@nasymloopsmirna);
+ printOutBulgsLoopsLength(@nblgsoutmirna);
+ printOutBulgsLoopsLength(@nsymloopsoutmirna);
+ printOutBulgsLoopsLength(@nasymloopsoutmirna);
+ 
+}#End of function
+###################################################################################################################################
+sub printOutBulgsLoopsLength{
+             (@arr) = @_;       
+my $outlier = 0 ;
+my $result;
+for ($k=8;$k<=$#arr;++$k)
+   { $outlier = $outlier+ $arr[$k] ;}
+            
+for ($k=1 ; $k<=7; $k++)
+  {
+    $result = sprintf("%4d ",$arr[$k]);
+    print ST $result;
+  }    
+#print the outlier bigger than 7 
+$result = sprintf ("%4d ",$outlier);
+print ST $result;
+
+}
+#####################################################################################
+# sub getMature() :
+####################################################################################
+sub getMature{
+       my ($hdrname) = @_ ;
+   my $flag = 1 ;
+   $i = 0 ;
+   $hdrname = lc ($hdrname);
+   $arrlength = @mature;
+  while ( $flag == 1 && $i < $arrlength) 
+    {  $line = lc($mature[$i] );
+      if ( $line=~/$hdrname/ )
+        { $st = $mature[$i+1] ;
+          chomp ($st);
+         $flag = 0 ;
+        }# End of if ( )   
+      ++$i ;
+    }#End of while
+return $st ;
+
+}#End of function
+################################################################################################
+
+sub positionSubstring{
+       my ($stem) = shift(@_);
+       my ($mirna)= shift(@_);
+  @letpos=();
+  @lc=();
+ 
+ push (@lc,-1);
+ 
+ for ($i = 0 ; $i <length ($stem); $i++)
+    { $let = substr($stem,$i,1); 
+     if (  $let ne '-'   )  
+        { push (@letpos,$i);}
+    }
+ 
+ $stem =~s/-//g;
+ $location = index ($stem,$mirna);
+  my $mm=$mirna; 
+  my $z=0;
+ while ($location == -1 & $z <4 )
+   {  $mm =  substr($mirna,0,length($mirna)-$z);
+     $location = index ($stem,$mm);
+     $z=$z+1;
+  }
+  $mirna = $mm; 
+ if ($location != -1 )
+  { $start = $letpos[$location];
+    $end   = $letpos[$location + length($mirna) - 1 ]; 
+    shift (@lc); 
+    push (@lc,$start);
+    push (@lc,$end);
+    #my $result = sprintf("s:%4d e:%4d",$start,$end);
+    #print ST $result;
+      }
+ 
+return @lc;
+}#End of sub routine 
+############################################################################
+# sub findBulges($stem1,$dashes,$stem2) 
+############################################################################
+sub findBulges{
+     my ($stem1) = shift (@_);
+     my ($dash)  = shift (@_);
+     my ($stem2)= shift (@_);
+ my $nbulges = 0;
+ my $nsloops = 0;
+ my $nloopsnonsym = 0;
+ my $sumb= 0 ;
+ my $suml = 0 ;
+ my $bp;
+ #print ST "\n",$stem1,"\n",$dash,"\n",$stem2; 
+ while ($dash =~ m/\s+/g) {
+    #print "\n", pos ($dash) - length($&) ," ", pos ($dash) ;
+    $f = pos ($dash) - length($&) ;
+    $l = pos ($dash) ;
+    $s1 = substr($stem1,$f,$l-$f); #copy the corsponding part from stem1
+    $s2 = substr($stem2,$f,$l-$f); #copy the corsponding part from stem2
+   # print ST "\n",$s1, " ",$s2,"\n"; 
+   # if (  ($s1 =~/\-+[ATCGUNatcgun]+/ ) || ($s2 =~/\-+[ATCGUNatcgun]+/) ) #Non symetric loops
+ if (  ($s1 =~/\-+[ATCGUNatcgun]+/ ) || ($s1=~/[ATCGUNatcgun]+\-+/ ) || ($s2 =~/[ATCGUNatcgun]+\-+/) ||($s2=~/\-+[ATCGUNatcgun]+/)  ) #Non symetric loops
+            { ++$nsloops; ++$nloopsnonsym ; $suml=$suml+$l-$f; 
+              $width = $l-$f;
+              if ($flagformirna == 1 )
+                   { ++$nasymloopsmirna[$width];
+                     ++$nloopsmirna[$width]       } #number of loops with length width
+             else  {++$nasymloopsoutmirna[$width];
+                    ++$nloopsoutmirna[$width]   }
+  
+            }#Non symetric loops 
+    else  { if ($s1 =~m/\-+/  || $s2 =~m/\-+/ ) #Pure bulges
+             { ++$nbulges ; $sumb= $sumb+$l-$f ;
+               $width = $l-$f;
+               if ($flagformirna == 1)
+                  { ++$nblgsmirna[$width];}
+               else { ++$nblgsoutmirna[$width];}
+             } #pure bulges
+            else  { ++$nsloops; $suml = $suml+$l-$f;         
+                    $width = $l-$f;
+                    if ($flagformirna == 1)
+                        { ++$nsymloopsmirna[$width];
+                          ++$nloopsmirna[$width]  }
+                    else { ++$nsymloopsoutmirna[$width];
+                           ++$nloopsoutmirna[$width] }
+                  } #pure loops ;
+          }#End of else 
+    }#End of while
+    $avgbulges = 0 ;
+    $avgloops = 0 ;
+    if ( $nbulges != 0 ) { $avgbulges = $sumb/$nbulges;}
+    if ($nsloops !=0 ) {$avgloops = $suml/$nsloops;}
+    $stlen = ($stem1 =~tr/NACGTUnacgtu//) + ($stem2=~tr/NACGTUnacgtu//);
+    $bp    = ($dash=~tr/\|//);
+    $ll = $stlen;
+    if ($stlen == 0 ) {$stlen = 1;}
+    #print ST   $nbulges,  $sumb/$nbulges,  $nsloops ,  $suml/$nsloops , $nloopsnonsym;
+    #$result = sprintf("%4d %4d %10.4f %4d %10.4f %4d",$ll,$nbulges,$avgbulges,$nsloops,$avgloops,$nloopsnonsym);
+    $result = sprintf("%4d %4d  %4d %4d",$bp,$nbulges,$nsloops,$nloopsnonsym);
+    print ST $result;
+}#End of function
+
+   
